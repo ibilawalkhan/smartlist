@@ -31,50 +31,60 @@ export class AuthService {
       throw new TermsNotAcceptedException();
     }
 
-    const existingUser = await this.userRepository.existsByEmail(email);
-    if (existingUser) {
-      this.logger.warn(
-        `Signup attempt with existing email: ${email}`,
-        'AuthService',
-      );
-      throw new UserAlreadyExistsException();
-    }
-
     const passwordHash = await this.passwordService.hash(password);
 
-    const user = await this.transactionHelper.executeInTransaction(
-      async (client) => {
-        const newUser = await this.userRepository.create(
-          client,
-          email,
-          name,
-          terms_accepted,
+    try {
+      const user = await this.transactionHelper.executeInTransaction(
+        async (client) => {
+          const newUser = await this.userRepository.create(
+            client,
+            email,
+            name,
+            terms_accepted,
+          );
+
+          await this.authMethodRepository.createPasswordAuth(
+            client,
+            newUser.kuid,
+            passwordHash,
+          );
+
+          return newUser;
+        },
+      );
+      this.logger.log(
+        `User registered successfully: ${user.kuid}`,
+        'AuthService',
+      );
+
+      const tokens = await this.tokenService.generateTokens(user);
+
+      return {
+        message: AuthSuccessMessages.SIGNUP_SUCCESS,
+        user: {
+          kuid: user.kuid,
+          email: user.email,
+          name: user.name,
+          terms_accepted: user.terms_accepted,
+        },
+        ...tokens
+      };
+    } catch (error) {
+      if (error.code === '23505' || error.message === 'DUPLICATE_EMAIL') {
+        this.logger.warn(
+          `Signup attempt with existing email: ${email}`,
+          'AuthService',
         );
+        throw new UserAlreadyExistsException();
+      }
 
-        await this.authMethodRepository.createPasswordAuth(
-          client,
-          newUser.kuid,
-          passwordHash,
-        );
-
-        return newUser;
-      },
-    );
-
-    this.logger.log(
-      `User registered successfully: ${user.kuid}`,
-      'AuthService',
-    );
-
-    return {
-      message: AuthSuccessMessages.SIGNUP_SUCCESS,
-      user: {
-        kuid: user.kuid,
-        email: user.email,
-        name: user.name,
-        terms_accepted: user.terms_accepted,
-      },
-    };
+      this.logger.error(
+        `Signup failed: ${error.message}`,
+        error.stack,
+        'AuthService',
+      );
+      throw error;
+    }
   }
 
   async signin(data: SigninDto) {

@@ -34,9 +34,3 @@ export class SigninDto {
   @MinLength(1, { message: 'Password is required' })
   password: string;
 }
-
-export class GoogleDto {
-  @IsString()
-  @IsNotEmpty()
-  idToken: string;
-}
