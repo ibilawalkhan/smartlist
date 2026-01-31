@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AuthAccountsModule } from './auth_accounts/auth_accounts.module';
+import { AuthModule } from './auth_accounts/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { CommentsModule } from './comments/comments.module';
 import { DeadlinesModule } from './deadlines/deadlines.module';
@@ -14,13 +14,15 @@ import { SharedTasksModule } from './shared_tasks/shared_tasks.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UserDevicesModule } from './user_devices/user_devices.module';
 import { UsersModule } from './users/users.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    AuthAccountsModule,
+    DatabaseModule,
+    AuthModule,
     BillingModule,
     CommentsModule,
     DeadlinesModule,

@@ -1,9 +1,10 @@
 import { Module, Global } from '@nestjs/common';
 import { Pool } from 'pg';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Global()
 @Module({
+  imports: [ConfigModule],
   providers: [
     {
       provide: 'PG_POOL',
